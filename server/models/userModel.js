@@ -29,6 +29,6 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true }); // Timestamps to track creation and modification times
 
 // Check if the user model already exists to avoid recompilation errors in development
-const userModel = mongoose.models.User || mongoose.model("User", userSchema);
+const userModel = mongoose.models.user || mongoose.model("user", userSchema);
 
 export default userModel;

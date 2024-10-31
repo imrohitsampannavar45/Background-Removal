@@ -1,97 +1,26 @@
-// import { Webhook } from "svix"
-// import userModel from '../models/userModel.js'
-// // API Controller Function to manage Cler USers in Database
-// // http://localhost:4000/api/user/webhooks
-
-// const clerkWebhooks = async (req,res) => {
- 
-
-
-//     try{
-
-// const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET)
-
-// await whook.verify(JSON.stringify(req,body),{
-//     "svix-id":req.headers["svix-id"],
-//     "svix-timestamp":req.headers["svix-timestamp"],
-//     "svix-signature":req.headers["svix-signature"]
-// })
-
-//             const{data, type} = req.body
-//         switch(type){
-//             case "user.created": {
-
-// const userData ={
-//     clerkId:data.id,
-//     email:data.email_addresses[0].email_address,
-//     firstName:data.first_name,
-//     lastName:data.last_name,
-//     photo:data.image_url
-// }
-
-// await userModel.create(userData)
-//     res.json({})
-
-
-//                 break;
-//             }
-//             case "user.updated": {
-
-// const userData = {
-//     email:data.email_addresses[0].email_address,
-//     firstName:data.first_name,
-//     lastName:data.last_name,
-//     photo:data.image_url
-// }
-
-
-// await userModel.findOneAndUpdate({clerkId:data.id},userData)
-// res.json({})
-//                 break;
-//             }
-
-//             case "user.deleted": {
-                
-//                 await userModel.findOneAndDelete({clerkId:data.id})
-//                     res.json({})              
-//                 break;
-//             }
-
-//             default:
-//                 break;
-//         }
-
-
-//     } catch(error){
-//         console.log(error.message);
-//         res.json({success:false,message:error.message})
-//     }
-
-
-// }
-
-// export {clerkWebhooks} 
 import { Webhook } from "svix";
 import userModel from '../models/userModel.js';
-import express from 'express';
-import bodyParser from 'body-parser';
-
-const app = express();
-app.use(bodyParser.json()); // Use the body-parser middleware
 
 // API Controller Function to manage Clerk Users in Database
-// http://localhost:4000/api/user/webhooks
 const clerkWebhooks = async (req, res) => {
     try {
+        // Log headers for debugging
+        console.log("Headers:", req.headers);
+        
         const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
-        await whook.verify(JSON.stringify(req.body), {
+        // Verify the webhook signature
+        const payload = JSON.stringify(req.body); // Ensure you pass the correct body
+        await whook.verify(payload, {
             "svix-id": req.headers["svix-id"],
             "svix-timestamp": req.headers["svix-timestamp"],
             "svix-signature": req.headers["svix-signature"]
         });
 
+        // Log incoming data
         const { data, type } = req.body;
+        console.log("Received Webhook Data:", data);
+        console.log("Webhook Type:", type);
 
         switch (type) {
             case "user.created": {
@@ -102,9 +31,12 @@ const clerkWebhooks = async (req, res) => {
                     lastName: data.last_name,
                     photo: data.image_url
                 };
+                
+                // Log userData before saving
+                console.log("User Data to be created:", userData);
 
                 await userModel.create(userData);
-                res.status(200).json({});
+                res.json({ success: true, message: "User created successfully" });
                 break;
             }
             case "user.updated": {
@@ -115,13 +47,16 @@ const clerkWebhooks = async (req, res) => {
                     photo: data.image_url
                 };
 
+                // Log userData before updating
+                console.log("User Data to be updated:", userData);
+
                 await userModel.findOneAndUpdate({ clerkId: data.id }, userData);
-                res.status(200).json({});
+                res.json({ success: true, message: "User updated successfully" });
                 break;
             }
             case "user.deleted": {
                 await userModel.findOneAndDelete({ clerkId: data.id });
-                res.status(200).json({});
+                res.json({ success: true, message: "User deleted successfully" });
                 break;
             }
             default:
@@ -130,18 +65,9 @@ const clerkWebhooks = async (req, res) => {
         }
 
     } catch (error) {
-        console.log(error.message);
+        console.error("Webhook error:", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 export { clerkWebhooks };
-
-// Ensure the endpoint is set up in your Express app
-app.post('/api/user/webhooks', clerkWebhooks);
-
-// Start your Express app
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
